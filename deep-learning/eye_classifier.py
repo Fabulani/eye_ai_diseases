@@ -1,19 +1,11 @@
 from io import StringIO
-from re import S
 from xmlrpc.client import Boolean
-from xxlimited import new
-from black import out
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-import torchvision
-import random
-import time
-import math
 from enum import Enum, IntEnum, unique, auto
 from typing import Tuple, List, Union
-
 
 @unique
 class TransferFunction(IntEnum):
@@ -25,33 +17,35 @@ class TransferFunction(IntEnum):
     Softmax = 5
 
 
-class NeuralNet(nn.Module):
-
+class EyeClassifier(nn.Module):
     __layers = []
+    __device = None
+    __optimizer = None
+    __loss_func = None
 
-    def __add_layers(self, image_shape: Tuple[int, int, int], layers: List[(nn.Module, TransferFunction)]) -> None:
+    def __add_layers(self, image_shape: Tuple[int, int, int], layers: List[Tuple[nn.Module, TransferFunction]]) -> None:
 
         next_layer_shape = image_shape
         for i in range(0, len(layers)):
 
-            if type(layers[i]) is nn.Conv2d:
-                (nn.Conv2d(layers[i])).in_channels = next_layer_shape[2]
-                p = self.__conv_output_shape(next_layer_shape, kernel_size=5, stride=1, pad=0, dilation=1)
+            if type(layers[i][0]) is nn.Conv2d:
+                layers[i][0].in_channels = next_layer_shape[2]
+                p = EyeClassifier.__conv_output_shape((next_layer_shape[0],next_layer_shape[1]), kernel_size=5, stride=1, pad=0, dilation=1)
                 next_layer_shape[0] = p[0]
                 next_layer_shape[1] = p[1]
-                next_layer_shape[2] = (nn.Conv2d(layers[i])).out_channels
+                next_layer_shape[2] = layers[i][0].out_channels
 
-            elif type(layers[i]) is nn.MaxPool2d:
-                p = self.__conv_output_shape(next_layer_shape, kernel_size=5, stride=1, pad=0, dilation=1)
+            elif type(layers[i][0]) is nn.MaxPool2d:
+                p = EyeClassifier.__conv_output_shape((next_layer_shape[0],next_layer_shape[1]), kernel_size=5, stride=1, pad=0, dilation=1)
                 next_layer_shape[0] = p[0]
                 next_layer_shape[1] = p[1]
 
-            elif type(layers[i]) is nn.Linear:
-                (nn.Linear(layers[i])).in_features = next_layer_shape[0] * next_layer_shape [1]
-                next_layer_shape = ((nn.Linear(layers[i])).out_features, 1)
+            elif type(layers[i][0]) is nn.Linear:
+                layers[i][0].in_features = next_layer_shape[0] * next_layer_shape [1]
+                next_layer_shape = (layers[i][0].out_features, 1)
 
-            self.__layers.append(layers[i])
-            self.add_module(f'layer {i+1}', layers[i])
+            self.__layers.append(layers[i][0])
+            self.add_module(f'layer {i+1}', layers[i][0])
 
     def __conv_output_shape(h_w: Tuple[int, int], kernel_size: int, stride: int, pad: int, dilation: int) -> Tuple[int, int]:
             """
@@ -78,18 +72,17 @@ class NeuralNet(nn.Module):
 
             return (w, h)
 
-    def __init__(self, image_shape: Tuple[int, int, int]):
-        super(NeuralNet, self).__init__()
-
+    def __init__(self, image_shape: Tuple[int, int, int]) -> None:
+        super(EyeClassifier, self).__init__()
     
-        self.__add_layers([
+        self.__add_layers(image_shape, [
 
             (nn.Conv2d(in_channels=image_shape[2], out_channels=6,
                        kernel_size=(5, 5), stride=(1, 1), padding=(0, 0), dilation=(1, 1)),
              TransferFunction.NotApplicable),
 
             (nn.MaxPool2d(
-                kernel_size=(2, 2), stride=str(1, 1), padding=(0, 0), dilation=(1, 1)),
+                kernel_size=(2, 2), stride=(1, 1), padding=(0, 0), dilation=(1, 1)),
              TransferFunction.NotApplicable),
 
             (nn.Conv2d(in_channels=6, out_channels=16,
@@ -97,7 +90,7 @@ class NeuralNet(nn.Module):
              TransferFunction.NotApplicable),
 
             (nn.MaxPool2d(
-                kernel_size=(2, 2), stride=str(1, 1), padding=(0, 0), dilation=(1, 1)),
+                kernel_size=(2, 2), stride=(1, 1), padding=(0, 0), dilation=(1, 1)),
              TransferFunction.NotApplicable),
 
             (nn.Dropout(),
@@ -117,7 +110,7 @@ class NeuralNet(nn.Module):
         outp = image
         for layer in self.__layers:
             outp = layer[0](outp)
-            tf = NeuralNet.__get_tf(layer[1])
+            tf = EyeClassifier.__get_tf(layer[1])
             if tf != None:
                 outp = tf(outp)
         return outp
@@ -187,6 +180,41 @@ class NeuralNet(nn.Module):
                     if train_percent_pos >= train_percent_step:
                         train_percent_pos = 0
                         train_percent_total += 1
-                        print (f'training [{train_percent_total}%]epoch {epoch+1}/{num_epochs}, step {i+1}/{total_steps}, loss = {loss.item():.4f}')
+                        print (f'training ({train_percent_total}%\) epoch {epoch+1}/{num_epochs}, step {i+1}/{total_steps}, loss = {loss.item():.4f}')
             
-                    train_percent_pos += 1
+                    train_percent_pos += 1    
+    
+    def test (self, dataset: Dataset, labels:List[str], batch_size:int = 4, gpu: Boolean=True, verbose: Boolean = True):
+        test_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+        self.__change_device(gpu)
+        num_labels = len(labels)
+
+        with torch.no_grad():
+            n_correct = 0
+            n_samples = 0
+            n_class_correct = [0 for i in range(num_labels)]
+            n_class_samples = [0 for i in range(num_labels)]
+            for images, labels in test_loader:
+                images = images.to(self.__device)
+                labels = labels.to(self.__device)
+                outp = self(images)
+
+                #value, index
+                _, predictions = torch.max(outp, 1)
+                n_samples += labels.shape[0]
+                n_correct += (predictions == labels).sum().item()
+
+                for i in range(batch_size):
+                    label = labels[i]
+                    pred = predictions[i]
+                    if (label == pred):
+                        n_class_correct[label] += 1
+                    n_class_samples[label] += 1
+
+            acc = 100.0 * (n_correct/n_samples);
+            print (f'accuracy: {acc}% [{n_correct}/{n_samples}')
+
+            for i in range(10):
+                acc = 100.0 * (n_class_correct[i]/n_class_samples[i]);
+                print (f'accuracy of {labels[i]}: {acc}% [{n_class_correct[i]}/{n_class_samples[i]}]')
