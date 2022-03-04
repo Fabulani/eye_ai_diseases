@@ -1,0 +1,122 @@
+
+
+Normal (N)
+--------------
+normal fundus
+
+Other diseases/abnormalities (O)
+---------------------------------
+epiretinal membrane over the macula
+branch retinal vein occlusion
+peripapillary atrophy
+refractive media opacity
+depigmentation of the retinal pigment epithelium
+spotted membranous change
+optic nerve atrophy
+tessellated fundus
+old central retinal vein occlusion
+macular epiretinal membrane
+retinitis pigmentosa
+optic disk epiretinal membrane
+pigment epithelium proliferation
+epiretinal membrane
+laser spot
+old choroiditis
+chorioretinal atrophy with pigmentation proliferation
+drusen
+old branch retinal vein occlusion
+retinal pigment epithelium atrophy
+retina fold
+fundus laser photocoagulation spots
+idiopathic choroidal neovascularization
+suspected retinal vascular sheathing
+post retinal laser surgery
+vessel tortuosity
+vitreous degeneration
+retinal artery macroaneurysm
+silicone oil eye
+macular pigmentation disorder
+branch retinal artery occlusion
+punctate inner choroidopathy
+central retinal vein occlusion
+myelinated nerve fibers
+old chorioretinopathy
+wedge white line change
+post laser photocoagulation
+diffuse retinal atrophy
+* coloboma
+atrophic change
+retinal pigmentation
+choroidal nevus
+optic disc edema
+arteriosclerosis
+* chorioretinal atrophy
+macular hole
+rhegmatogenous retinal detachment
+* atrophy
+diffuse chorioretinal atrophy
+maculopathy
+suspected microvascular anomalies
+morning glory syndrome
+oval yellow-white atrophy
+suspected abnormal color of  optic disc
+intraretinal microvascular abnormality
+wedge-shaped change
+vitreous opacity
+central serous chorioretinopathy
+vascular loops
+glial remnants anterior to the optic disc
+central retinal artery occlusion
+abnormal pigment 
+retinal detachment
+suspected macular epimacular membrane
+suspected retinitis pigmentosa
+retinal pigment epithelial hypertrophy
+
+
+IGNORE DIAGNOSTICS
+-------------------
+white vessel
+
+IGNORE IMAGE (BOTH)
+--------------
+no fundus image
+lens dust
+optic disk photographically invisible
+asteroid hyalosis
+image offset
+low image quality
+anterior segment image
+
+Diabetes (D)
+-------------------
+* proliferative retinopathy
+* nonproliferative
+* diabetic
+
+
+Pathological Myopia (M),
+--------------------------
+* Myopia
+myopic maculopathy
+myopic retinopathy
+
+Hypertension (H),
+--------------------
+hypertensive retinopathy
+
+Glaucoma (G),
+-------------
+glaucoma
+intraretinal hemorrhage
+
+Cataract (C),
+------------
+cataract
+
+Age related Macular Degeneration (A),
+--------------------------------------
+age-related macular degeneration
+
+
+
