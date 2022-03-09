@@ -29,7 +29,8 @@ base_dir = "/workspaces/VisaoComputacional/trabalho-final/data"
 image_dir = f"{base_dir}/preprocessed_images"
 csv_file = f'{base_dir}/ODIR-5K/data.csv'
 
-ds = read_images(base_dir, image_path=image_dir, data_info_csv_file=csv_file, limit_input_count=100)
+#ds = read_images(base_dir, image_path=image_dir, data_info_csv_file=csv_file, limit_input_count=100)
+ds = read_images(base_dir, image_path=image_dir, data_info_csv_file=csv_file)
 
 print(ds.targets[0])
 train_loader = DataLoader(ds, batch_size=4, shuffle=True)

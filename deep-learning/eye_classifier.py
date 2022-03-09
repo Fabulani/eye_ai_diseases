@@ -214,15 +214,11 @@ class EyeClassifier(nn.Module):
         test_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
         self.__change_device(gpu)
-        labels = dataset.classes
-        num_labels = len(labels)
-
 
         with torch.no_grad():
             n_correct = 0
             n_samples = 0
-            n_class_correct = [0 for i in range(num_labels)]
-            n_class_samples = [0 for i in range(num_labels)]
+            n_class_samples = 0
 
             for images, labels in test_loader:
 
@@ -237,20 +233,18 @@ class EyeClassifier(nn.Module):
                 torch.sigmoid(outp)
                 #value, index
                 #_, predictions = torch.max(outp, 1)
-                predictions = (outp >= 0.5).int()
+                predictions = (outp >= 0.5).float()
                 n_samples += labels.shape[0] * labels.shape[1]
-                n_correct += (predictions == labels).sum().item()
+                m_results = predictions == labels
+                n_correct += m_results.sum(0).cpu().numpy()
 
-                # for i in range(batch_size):
-                #     label = labels[i]
-                #     pred = predictions[i]
-                #     if (label == pred):
-                #         n_class_correct[label] += 1
-                #     n_class_samples[label] += 1
+            sum_correct = n_correct.sum()
+            print (f'accuracy: {(100.0 * sum_correct/n_samples):.2f}% [{sum_correct}/{n_samples}]')
 
-            acc = 100.0 * (n_correct/n_samples);
-            print (f'accuracy: {acc}% [{n_correct}/{n_samples}]')
+            labels = dataset.classes
+            num_labels = len(labels)
 
-            # for i in range(10):
-            #     acc = 100.0 * (n_class_correct[i]/n_class_samples[i]);
-            #     print (f'accuracy of {labels[i]}: {acc}% [{n_class_correct[i]}/{n_class_samples[i]}]')
+            total_samples = len(dataset)
+            for i in range(0, num_labels):
+                acc = 100.0 * (n_correct[i]/total_samples);
+                print (f'\t - {labels[i]}: {acc:.2f}% [{n_correct[i]}/{total_samples}]')
