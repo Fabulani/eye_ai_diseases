@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 from eye_classifier import *
 
 @unique
-class TargetType(IntEnum):
+class TargetLabel(IntEnum):
     Normal = 0,
     Diabetes = 1,
     Glaucoma = 2,
@@ -20,8 +20,12 @@ class TargetType(IntEnum):
     Hypertension = 5,
     PathologicalMyopia = 6,
     Other = 7,
-    IgnoreDiagnostics = 8,
-    IgnoreImage = 9
+
+@unique
+class TargetType(IntEnum):
+    GoodImage = 0,
+    BadImage = 1,
+    NotUsefulDiagnostics = 2
 
 class ImageDataset (VisionDataset):
     files = []
@@ -50,7 +54,7 @@ class ImageDataset (VisionDataset):
             if self.target_transform is not None:
                 target = self.target_transform(target)
 
-            return img, target
+            return img, torch.Tensor(target)
 
 __ignore_image_str = [
     'no fundus image',
@@ -61,7 +65,6 @@ __ignore_image_str = [
     'low image quality',
     'anterior segment image'
 ]
-
 __myopia_str = [
     'myopic maculopathy',
     'myopic retinopathy'
@@ -138,42 +141,50 @@ _other_diagnostics_str = [
     'epiretinal membrane over the macula'
 ]
 
-def __translate_diagonstics(diagnostics:str) -> TargetType:
+def __translate_diagonstics(diagnostics:str) -> Tuple[TargetLabel, TargetType]:
     
     diag = diagnostics.lower().strip()
-    if diag == "normal fundus": return TargetType.Normal
-    elif diag == "white vessel": return TargetType.IgnoreDiagnostics
-    elif diag in  __ignore_image_str: return TargetType.IgnoreImage
+    if diag == "normal fundus": return (TargetLabel.Normal, TargetType.GoodImage)
+    elif diag == "white vessel": return (TargetLabel.Normal, TargetType.NotUsefulDiagnostics)
+    elif diag in  __ignore_image_str: return (TargetLabel.Normal, TargetType.BadImage)
     elif 'proliferative retinopathy' in diag or \
          'nonproliferative' in diag or \
-         'diabetic' in diag: return TargetType.Diabetes
-    elif 'myopia' in diag or diag in __myopia_str: return TargetType.PathologicalMyopia
-    elif diag == 'hypertensive retinopathy': return TargetType.Hypertension
-    elif diag in __glaucoma_str: return TargetType.Glaucoma
-    elif 'cataract' in diag: return TargetType.Cataract
-    elif 'age-related macular degeneration' in diag: return TargetType.AgeRelatedMacularDegeneration
+         'diabetic' in diag: return (TargetLabel.Diabetes, TargetType.GoodImage)
+    elif 'myopia' in diag or diag in __myopia_str: return (TargetLabel.PathologicalMyopia, TargetType.GoodImage)
+    elif diag == 'hypertensive retinopathy': return (TargetLabel.Hypertension, TargetType.GoodImage)
+    elif diag in __glaucoma_str: return (TargetLabel.Glaucoma, TargetType.GoodImage)
+    elif 'cataract' in diag: return (TargetLabel.Cataract, TargetType.GoodImage)
+    elif 'age-related macular degeneration' in diag: return (TargetLabel.AgeRelatedMacularDegeneration, TargetType.GoodImage)
     elif 'coloboma' in diag or \
          'chorioretinal atrophy' in diag or \
          'chorioretinal atrophy' in diag or \
-         diag in _other_diagnostics_str: return TargetType.Other
+         diag in _other_diagnostics_str: return (TargetLabel.Other, TargetType.GoodImage)
     else:
         raise Exception(str.format(f'Diagnostics \"{diagnostics}\"not expected'))
 
-def __calc_label(diagnostics_str: str) -> Tuple[int, bool]:
-    label = 0
-    for d in diagnostics_str.split(','):
-        p = __translate_diagonstics(d)
-        if (p == TargetType.IgnoreDiagnostics):
-            continue
-        elif (p == TargetType.IgnoreImage):
-            return [0, False]
-        elif (p == TargetType.Normal):
-            return [0, True]
-        else:
-            label += 1<<(7 - int(p))
-    return [label, True]
+def __build_diagostics_labels(diagnostics_str: str, num_classes: int) -> Tuple[dict, bool]:
+    labels = [0 for _ in range(0, num_classes)]
 
-def read_images(base_dir: str, image_path: str, data_info_csv_file: str) -> ImageDataset:
+    for d in diagnostics_str.split(','):
+        label, type = __translate_diagonstics(d)
+        if (type == TargetType.NotUsefulDiagnostics):
+            continue
+        elif (type == TargetType.BadImage):
+            return [None, False]
+        else:
+            labels[int(label)] = 1
+    
+    return [labels, True]
+            
+def __build_empty_dict(classes: List[str]) -> dict:
+    labels = dict()
+    for c in classes:
+        labels[c] = torch.Tensor([0])
+    return labels
+
+
+
+def read_images(base_dir: str, image_path: str, data_info_csv_file: str, limit_input_count = -1) -> ImageDataset:
 
     tranform_method = transforms.Compose([
         transforms.ToTensor(),
@@ -181,26 +192,35 @@ def read_images(base_dir: str, image_path: str, data_info_csv_file: str) -> Imag
     ])
 
     dataset = ImageDataset(base_dir, transform=tranform_method)
-    dataset.classes = [e.name for e in TargetType]
+    dataset.classes = [e.name for e in TargetLabel]
 
     data = []
+    limit = limit_input_count
+
     for idx, row in pd.read_csv(data_info_csv_file).iterrows():
         left_file = f"{image_path}/{row['Left-Fundus']}"
         right_file = f"{image_path}/{row['Right-Fundus']}"
         
+        if limit >= 0:
+            if limit == 0: break
+            limit -= 1
+
+        num_classes = len(dataset.classes)
+
         if ospath.exists(left_file):
-            label, valid_image = __calc_label(row['Left-Diagnostic Keywords'])
+            labels, valid_image = __build_diagostics_labels(row['Left-Diagnostic Keywords'], num_classes)
             if valid_image:
+                dataset.targets.append(labels)   
                 dataset.files.append(left_file)
                 data.append(io.imread(left_file))
-                dataset.targets.append(label)
         
         if ospath.exists(right_file):
-            label, valid_image = __calc_label(row['Right-Diagnostic Keywords'])
+            labels, valid_image = __build_diagostics_labels(row['Right-Diagnostic Keywords'], num_classes)
             if valid_image:
+                dataset.targets.append(labels)   
                 dataset.files.append(right_file)
                 data.append(io.imread(right_file))
-                dataset.targets.append(label)   
 
+    
     dataset.data = np.asarray(data, dtype=np.uint8)
     return dataset
