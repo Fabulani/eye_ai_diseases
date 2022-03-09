@@ -10,7 +10,7 @@ In the project root, run
 python -m pip install -r requirements.txt
 ```
 
-To open the Jupyter insterface, run
+To open the Jupyter interface, run
 
 ```sh
 jupyter notebook
