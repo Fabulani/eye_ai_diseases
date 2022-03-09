@@ -1,1 +1,7 @@
 deep-learning/__pycache__*
+.env
+data/
+.ipynb_checkpoints/
+.vscode/
+classica/out/
+**/__pycache__/**
