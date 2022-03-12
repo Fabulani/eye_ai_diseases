@@ -3,14 +3,7 @@ import math
 import numpy as np
 from skimage.color import rgb2gray
 from skimage import feature
-
-def print_img(title, image):
-    plt.title(title)
-    if len(image.shape) >= 3 and min(image.shape) > 1:
-        plt.imshow(image)
-    else:
-        plt.imshow(image, cmap=plt.cm.gray)
-    plt.show()
+from typing import Tuple, List, Union
 
 
 def calc_euclidean(image1, image2):
@@ -86,7 +79,31 @@ def specularity_pixels_count(image):
 
     return (p & q).sum()
 
-def is_strong_solid_opacity(image, padding=70, threshold=100, sigma=0.01) -> bool:
+def detect_opacity(image: Tuple[int,int,int], verbose = True) -> bool:
+    eq_img = contrast_equalization(image, adjust_if_lower=False)
+    canny_img, solid = is_strong_solid_opacity(eq_img)
+
+    if verbose:
+        fig = plt.figure(figsize=(10, 7))
+        fig.add_subplot(1, 3, 1)
+        plt.imshow(image)
+        plt.axis('off')
+        plt.title('original')
+
+        fig.add_subplot(1, 3, 2)
+        plt.imshow(eq_img)
+        plt.axis('off')
+        plt.title('brighness equalization')
+
+        fig.add_subplot(1, 3, 3)
+        plt.imshow(canny_img)
+        plt.axis('off')
+        plt.title('canny sigma 0.01')
+
+    return solid
+
+
+def is_strong_solid_opacity(image, padding=70, threshold=100, sigma=0.01) -> Tuple[Tuple[int, int], bool]:
     """A strong manifestatiom of opacity will probably be manifested by a low
        border detection on the image, because the eye is so opaque that the light
        of the fundoscope cannot show any veins
@@ -117,9 +134,22 @@ def is_strong_solid_opacity(image, padding=70, threshold=100, sigma=0.01) -> boo
     img = img[padding:img.shape[0]-padding,padding:img.shape[1]-padding]
     img =  feature.canny(img, sigma=sigma)
     img[img > 0] = 255
-    return (img > 0).sum() < threshold
+    return [img, (img > 0).sum() < threshold]
 
 def find_hog(image):
     return feature.hog(image, orientations=8, pixels_per_cell=(16, 16),
         cells_per_block=(1, 1), visualize=False, feature_vector=True, channel_axis=-1)
-    
+
+def calc_euclidean(image1, image2):
+    max_row_img2 = image2.shape[0]
+    max_col_img2 = image2.shape[1]
+
+    euclid = 0.0
+
+    for row in range(0, image1.shape[0]):
+        for col in range(0, image1.shape[1]):
+            if (row < max_row_img2 and col < max_col_img2):
+                p = (image1[row][col] - image2[row][col]) ** 2
+                euclid = euclid + p/100
+
+    return 10 * math.sqrt(euclid)
