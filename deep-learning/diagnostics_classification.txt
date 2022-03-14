@@ -73,7 +73,10 @@ retinal detachment
 suspected macular epimacular membrane
 suspected retinitis pigmentosa
 retinal pigment epithelial hypertrophy
-
+atrophy
+optic discitis
+pigmentation disorder
+retinal vascular sheathing
 
 IGNORE DIAGNOSTICS
 -------------------

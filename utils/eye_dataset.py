@@ -13,24 +13,48 @@ import torch
 
 class EyeImageDataset (VisionDataset):
     files = []
-    data = None
     classes = []
     targets = []
 
-    def __init__(self, root: str, transform: Optional[Callable] = None,
+
+    def __init__(self, root: str, data_info_csv_file: str, transform: Optional[Callable] = None,
             target_transform: Optional[Callable] = None) -> None:
 
         super(EyeImageDataset, self).__init__(root, transform=transform, target_transform=target_transform)
+        self.classes = [e.name for e in EyeImageDataset.TargetLabel]
+
+        for idx, row in pd.read_csv(data_info_csv_file).iterrows():
+            left_file = f"{root}/{row['Left-Fundus']}"
+            right_file = f"{root}/{row['Right-Fundus']}"
+
+            num_classes = len(self.classes)
+
+            if ospath.exists(left_file):
+                labels, valid_image = EyeImageDataset.__build_diagostics_labels(row['Left-Diagnostic Keywords'], num_classes, idx)
+                if valid_image:
+                    self.targets.append(labels)   
+                    self.files.append(left_file)
+            
+            if ospath.exists(right_file):
+                labels, valid_image = EyeImageDataset.__build_diagostics_labels(row['Right-Diagnostic Keywords'], num_classes, idx)
+                if valid_image:
+                    self.targets.append(labels)   
+                    self.files.append(right_file)
+
         
     def __len__(self) -> int:
-        return len(self.data)
+        return len(self.files)
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:           
-            img, target = self.data[index], self.targets[index]
+            img_file, target = self.files[index], self.targets[index]
+
+            img = io.imread(img_file)
 
             # doing this so that it is consistent with all other datasets
             # to return a PIL Image
             img = Image.fromarray(img)
+
+            #img = torch.Tensor(img)
 
             if self.transform is not None:
                 img = self.transform(img)
@@ -122,7 +146,11 @@ class EyeImageDataset (VisionDataset):
         'suspected macular epimacular membrane',
         'suspected retinitis pigmentosa',
         'retinal pigment epithelial hypertrophy',
-        'epiretinal membrane over the macula'
+        'epiretinal membrane over the macula',
+        'atrophy',
+        'optic discitis',
+        'pigmentation disorder',
+        'retinal vascular sheathing'
     ]
 
     @unique
@@ -142,7 +170,7 @@ class EyeImageDataset (VisionDataset):
         BadImage = 1,
         NotUsefulDiagnostics = 2
 
-    def __translate_diagonstics(diagnostics:str) -> Tuple[TargetLabel, TargetType]:
+    def __translate_diagonstics(diagnostics: str, idx: int) -> Tuple[TargetLabel, TargetType]:
         
         diag = diagnostics.lower().strip()
         if diag == "normal fundus": return (EyeImageDataset.TargetLabel.Normal, EyeImageDataset.TargetType.GoodImage)
@@ -161,13 +189,13 @@ class EyeImageDataset (VisionDataset):
             'chorioretinal atrophy' in diag or \
             diag in EyeImageDataset._other_diagnostics_str: return (EyeImageDataset.TargetLabel.Other, EyeImageDataset.TargetType.GoodImage)
         else:
-            raise Exception(str.format(f'Diagnostics \"{diagnostics}\"not expected'))
+            raise Exception(str.format(f'Diagnostics \"{diagnostics}\" not expected at sample {idx}'))
 
-    def __build_diagostics_labels(diagnostics_str: str, num_classes: int) -> Tuple[dict, bool]:
+    def __build_diagostics_labels(diagnostics_str: str, num_classes: int, idx: int) -> Tuple[dict, bool]:
         labels = [0 for _ in range(0, num_classes)]
 
         for d in diagnostics_str.split(','):
-            label, type = EyeImageDataset.__translate_diagonstics(d)
+            label, type = EyeImageDataset.__translate_diagonstics(d, idx)
             if (type == EyeImageDataset.TargetType.NotUsefulDiagnostics):
                 continue
             elif (type == EyeImageDataset.TargetType.BadImage):
@@ -176,39 +204,4 @@ class EyeImageDataset (VisionDataset):
                 labels[int(label)] = 1
         
         return [labels, True]
-                
-
-    def read_images(base_dir: str, image_path: str, data_info_csv_file: str, limit_input_count = -1, tranform = None) -> EyeImageDataset:
-        dataset = EyeImageDataset(base_dir, transform=tranform)
-        dataset.classes = [e.name for e in EyeImageDataset.TargetLabel]
-
-        data = []
-        limit = limit_input_count
-
-        for idx, row in pd.read_csv(data_info_csv_file).iterrows():
-            left_file = f"{image_path}/{row['Left-Fundus']}"
-            right_file = f"{image_path}/{row['Right-Fundus']}"
-            
-            if limit >= 0:
-                if limit == 0: break
-                limit -= 1
-
-            num_classes = len(dataset.classes)
-
-            if ospath.exists(left_file):
-                labels, valid_image = EyeImageDataset.__build_diagostics_labels(row['Left-Diagnostic Keywords'], num_classes)
-                if valid_image:
-                    dataset.targets.append(labels)   
-                    dataset.files.append(left_file)
-                    data.append(io.imread(left_file))
-            
-            if ospath.exists(right_file):
-                labels, valid_image = EyeImageDataset.__build_diagostics_labels(row['Right-Diagnostic Keywords'], num_classes)
-                if valid_image:
-                    dataset.targets.append(labels)   
-                    dataset.files.append(right_file)
-                    data.append(io.imread(right_file))
-
-        
-        dataset.data = np.asarray(data, dtype=np.uint8)
-        return dataset
+      

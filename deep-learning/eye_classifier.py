@@ -129,7 +129,11 @@ class EyeClassifier(nn.Module):
         with torch.no_grad():
             n_correct = 0
             n_samples = 0
-            n_class_samples = 0
+
+            testing_size = len(test_loader)
+            test_percent_step = 0.01*testing_size
+            test_percent_total = 0
+            test_percent_pos = 0
 
             for images, labels in test_loader:
 
@@ -148,6 +152,13 @@ class EyeClassifier(nn.Module):
                 n_samples += labels.shape[0] * labels.shape[1]
                 m_results = predictions == labels
                 n_correct += m_results.sum(0).cpu().numpy()
+
+                if verbose:
+                    if test_percent_pos >= test_percent_step or test_percent_total == 0:
+                        test_percent_pos = 0
+                        test_percent_total += 1
+                        print(
+                            f'testing {test_percent_total}% [{testing_size} files]')
 
             sum_correct = n_correct.sum()
             print(
