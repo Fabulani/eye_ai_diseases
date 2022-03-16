@@ -20,16 +20,19 @@ class TransferFunction(IntEnum):
 
 
 class EyeClassifier(nn.Module):
-    __layers = []
+    __layers: List[Tuple[nn.Module, TransferFunction]] = []
     __device = None
     __optimizer = None
     __loss_function = None
 
+    def __layer_name(pos:int) -> str:
+        return f'layer {pos+1}'
+
     def __init__(self, model: List[Tuple[nn.Module, TransferFunction]]) -> None:
         super(EyeClassifier, self).__init__()
         for i in range(0, len(model)):
-            self.__layers.append((model[i][0], model[i][1]))
-            self.add_module(f'layer {i+1}', model[i][0])
+            self.__layers.append((model[i][0], model[i][1]))           
+            self.add_module(EyeClassifier.__layer_name(i), model[i][0])
 
     def forward(self, image):
         outp = image
@@ -73,8 +76,32 @@ class EyeClassifier(nn.Module):
         self.__loss_function = loss_func
         return self
 
-    def train(self, dataset: Dataset, num_epochs: int = 100, batch_size: int = 4, learning_rate: float = 0.01, gpu: Boolean = True, verbose: Boolean = True):
+    def load_weights(self, file:str) -> None:
+        self.load_state_dict(torch.load(file))
+
+    def save_weights(self, file:str) -> None:
+        torch.save(self.state_dict(), file)
+
+    def save_layer_weights(self, layer_pos: int, file:str) -> None:
+        torch.save(self._modules[f'layer {layer_pos+1}'].state_dict(), file)
+
+    def load_layer_weights(self, layer_pos: int, file:str) -> None:
+        self._modules[f'layer_{layer_pos+1}'].load_state_dict(torch.load(file))
+
+    def freeze_layer(self, layer_pos: int) -> None:
+        for child in self._modules[EyeClassifier.__layer_name(layer_pos)][0].children():
+            for param in child.parameters():
+                param.requires_grad = False
+
+    def unfreeze_layer(self, layer_pos: int) -> None:
+        for child in self._modules[EyeClassifier.__layer_name(layer_pos)][0].children():
+            for param in child.parameters():
+                param.requires_grad = True
+
+
+    def train_model(self, dataset: Dataset, num_epochs: int = 100, batch_size: int = 4, learning_rate: float = 0.01, gpu: Boolean = True, verbose: Boolean = True):
         train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        self.train(True)
 
         self.__change_device(gpu)
 
@@ -121,8 +148,9 @@ class EyeClassifier(nn.Module):
 
                     train_percent_pos += 1
 
-    def test(self, dataset: Dataset, batch_size: int = 4, gpu: Boolean = True, verbose: Boolean = True):
+    def test_model(self, dataset: Dataset, batch_size: int = 4, gpu: Boolean = True, verbose: Boolean = True):
         test_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        self.eval()
 
         self.__change_device(gpu)
 
@@ -134,6 +162,8 @@ class EyeClassifier(nn.Module):
             test_percent_step = 0.01*testing_size
             test_percent_total = 0
             test_percent_pos = 0
+            num_files = testing_size * batch_size
+            num_processed_files = 0
 
             for images, labels in test_loader:
 
@@ -152,13 +182,15 @@ class EyeClassifier(nn.Module):
                 n_samples += labels.shape[0] * labels.shape[1]
                 m_results = predictions == labels
                 n_correct += m_results.sum(0).cpu().numpy()
+                num_processed_files += batch_size
 
                 if verbose:
                     if test_percent_pos >= test_percent_step or test_percent_total == 0:
                         test_percent_pos = 0
                         test_percent_total += 1
                         print(
-                            f'testing {test_percent_total}% [{testing_size} files]')
+                            f'testing {test_percent_total}% [{num_processed_files} / {num_files} files]')
+                    test_percent_pos += 1
 
             sum_correct = n_correct.sum()
             print(

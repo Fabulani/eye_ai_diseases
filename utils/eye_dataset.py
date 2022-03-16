@@ -54,8 +54,6 @@ class EyeImageDataset (VisionDataset):
             # to return a PIL Image
             img = Image.fromarray(img)
 
-            #img = torch.Tensor(img)
-
             if self.transform is not None:
                 img = self.transform(img)
 
