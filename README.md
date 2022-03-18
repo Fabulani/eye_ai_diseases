@@ -106,3 +106,24 @@ You can also freeze/ unfreeze layers to prevent them from being trained, using f
 Finally, you can save and load individual layer weights or the whole model weights by using save_layer_weights(), load_layer_weights(),
 save_weights() and load_weights() respectivelly.
 
+### Some results
+
+
+RESNET-18
+
+accuracy: 82.48% [43310/52512]
+	 - Normal: 92.34% [6061/6564]
+	 - Diabetes: 83.87% [5505/6564]
+	 - Glaucoma: 74.56% [4894/6564]
+	 - Cataract: 90.40% [5934/6564]
+	 - AgeRelatedMacularDegeneration: 83.68% [5493/6564]
+	 - Hypertension: 74.73% [4905/6564]
+	 - PathologicalMyopia: 92.00% [6039/6564]
+	 - Other: 68.24% [4479/6564]
+
+RESNET-34 (TODO)
+
+
+
+CUSTOM (TODO)
+
