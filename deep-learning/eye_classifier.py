@@ -8,7 +8,6 @@ from torch.utils.data import Dataset, DataLoader
 from enum import Enum, IntEnum, unique, auto
 from typing import Tuple, List, Union
 
-
 @unique
 class TransferFunction(IntEnum):
     NotApplicable = 0
@@ -86,21 +85,22 @@ class EyeClassifier(nn.Module):
         torch.save(self._modules[f'layer {layer_pos+1}'].state_dict(), file)
 
     def load_layer_weights(self, layer_pos: int, file:str) -> None:
-        self._modules[f'layer_{layer_pos+1}'].load_state_dict(torch.load(file))
+        self._modules[f'layer {layer_pos+1}'].load_state_dict(torch.load(file))
 
     def freeze_layer(self, layer_pos: int) -> None:
-        for child in self._modules[EyeClassifier.__layer_name(layer_pos)][0].children():
+        for child in self._modules[EyeClassifier.__layer_name(layer_pos)].children():
             for param in child.parameters():
                 param.requires_grad = False
 
     def unfreeze_layer(self, layer_pos: int) -> None:
-        for child in self._modules[EyeClassifier.__layer_name(layer_pos)][0].children():
+        for child in self._modules[EyeClassifier.__layer_name(layer_pos)].children():
             for param in child.parameters():
                 param.requires_grad = True
 
 
-    def train_model(self, dataset: Dataset, num_epochs: int = 100, batch_size: int = 4, learning_rate: float = 0.01, gpu: Boolean = True, verbose: Boolean = True):
-        train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    def train_model(self, dataset: Dataset, num_epochs: int = 100, batch_size: int = 4, learning_rate: float = 0.01, gpu: Boolean = True, verbose: Boolean = True, shuffle: Boolean = True):
+        
+        train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
         self.train(True)
 
         self.__change_device(gpu)

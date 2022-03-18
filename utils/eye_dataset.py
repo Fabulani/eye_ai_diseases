@@ -15,12 +15,16 @@ class EyeImageDataset (VisionDataset):
     files = []
     classes = []
     targets = []
-
+    __buffer_max_size = 0
+    __buffer_size = 0
+    __buffer_pos = 0
+    __buffer = None
 
     def __init__(self, root: str, data_info_csv_file: str, transform: Optional[Callable] = None,
-            target_transform: Optional[Callable] = None) -> None:
+                 target_transform: Optional[Callable] = None) -> None:
 
-        super(EyeImageDataset, self).__init__(root, transform=transform, target_transform=target_transform)
+        super(EyeImageDataset, self).__init__(
+            root, transform=transform, target_transform=target_transform)
         self.classes = [e.name for e in EyeImageDataset.TargetLabel]
 
         for idx, row in pd.read_csv(data_info_csv_file).iterrows():
@@ -30,37 +34,84 @@ class EyeImageDataset (VisionDataset):
             num_classes = len(self.classes)
 
             if ospath.exists(left_file):
-                labels, valid_image = EyeImageDataset.__build_diagostics_labels(row['Left-Diagnostic Keywords'], num_classes, idx)
+                labels, valid_image = EyeImageDataset.__build_diagostics_labels(
+                    row['Left-Diagnostic Keywords'], num_classes, idx)
                 if valid_image:
-                    self.targets.append(labels)   
+                    self.targets.append(labels)
                     self.files.append(left_file)
-            
+
             if ospath.exists(right_file):
-                labels, valid_image = EyeImageDataset.__build_diagostics_labels(row['Right-Diagnostic Keywords'], num_classes, idx)
+                labels, valid_image = EyeImageDataset.__build_diagostics_labels(
+                    row['Right-Diagnostic Keywords'], num_classes, idx)
                 if valid_image:
-                    self.targets.append(labels)   
+                    self.targets.append(labels)
                     self.files.append(right_file)
 
-        
+        self.__buffer_size = 0
+
+    def set_buffer_size(self, buffer_size: int) -> None:
+        if buffer_size <= 0:
+            self.__buffer_size = 0
+            self.__buffer_max_size = 0
+            self.__buffer_pos = 0
+            self.__buffer = None
+            return
+
+        self.__buffer_max_size = buffer_size
+        self.__buffer_size = 0
+        self.__buffer_pos = 0
+        self.__buffer = []
+
     def __len__(self) -> int:
         return len(self.files)
 
-    def __getitem__(self, index: int) -> Tuple[Any, Any]:           
-            img_file, target = self.files[index], self.targets[index]
+    def __read_image__(self, index: int) -> Any:
+        if self.__buffer_max_size <= 0:
+            # cache not available
+            return io.imread(self.files[index])
 
-            img = io.imread(img_file)
+        if index < self.__buffer_pos:
+            # reading the past...
+            return io.imread(self.files[index])
 
-            # doing this so that it is consistent with all other datasets
-            # to return a PIL Image
-            img = Image.fromarray(img)
+        if self.__buffer_size > 0 and index < self.__buffer_pos + self.__buffer_size:
+            # buffered
+            return self.__buffer[index - self.__buffer_pos]
 
-            if self.transform is not None:
-                img = self.transform(img)
+        # non-buffered
+        self.__buffer.clear()
+        self.__buffer_pos = index + 1
+        self.__buffer_size = 0
 
-            if self.target_transform is not None:
-                target = self.target_transform(target)
+        max = len(self.files)
 
-            return img, torch.Tensor(target)
+        for i in range(0, self.__buffer_max_size):
+            pos = self.__buffer_pos + i
+            if pos >= max:
+                break
+            img = io.imread(self.files[pos])
+            self.__buffer.append(img)
+            self.__buffer_size += 1
+
+        return io.imread(self.files[index])
+
+    def __getitem__(self, index: int) -> Tuple[Any, Any]:
+        img_file, target = self.files[index], self.targets[index]
+
+        # img = io.imread(img_file)
+        img = self.__read_image__(index)
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, torch.Tensor(target)
 
     __ignore_image_str = [
         'no fundus image',
@@ -169,25 +220,36 @@ class EyeImageDataset (VisionDataset):
         NotUsefulDiagnostics = 2
 
     def __translate_diagonstics(diagnostics: str, idx: int) -> Tuple[TargetLabel, TargetType]:
-        
+
         diag = diagnostics.lower().strip()
-        if diag == "normal fundus": return (EyeImageDataset.TargetLabel.Normal, EyeImageDataset.TargetType.GoodImage)
-        elif diag == "white vessel": return (EyeImageDataset.TargetLabel.Normal, EyeImageDataset.TargetType.NotUsefulDiagnostics)
-        elif diag in  EyeImageDataset.__ignore_image_str: return (EyeImageDataset.TargetLabel.Normal, EyeImageDataset.TargetType.BadImage)
+        if diag == "normal fundus":
+            return (EyeImageDataset.TargetLabel.Normal, EyeImageDataset.TargetType.GoodImage)
+        elif diag == "white vessel":
+            return (EyeImageDataset.TargetLabel.Normal, EyeImageDataset.TargetType.NotUsefulDiagnostics)
+        elif diag in EyeImageDataset.__ignore_image_str:
+            return (EyeImageDataset.TargetLabel.Normal, EyeImageDataset.TargetType.BadImage)
         elif 'proliferative retinopathy' in diag or \
             'nonproliferative' in diag or \
-            'diabetic' in diag: return (EyeImageDataset.TargetLabel.Diabetes, EyeImageDataset.TargetType.GoodImage)
-        elif 'myopia' in diag or diag in EyeImageDataset.__myopia_str: return (EyeImageDataset.TargetLabel.PathologicalMyopia, EyeImageDataset.TargetType.GoodImage)
-        elif diag == 'hypertensive retinopathy': return (EyeImageDataset.TargetLabel.Hypertension, EyeImageDataset.TargetType.GoodImage)
-        elif diag in EyeImageDataset.__glaucoma_str: return (EyeImageDataset.TargetLabel.Glaucoma, EyeImageDataset.TargetType.GoodImage)
-        elif 'cataract' in diag: return (EyeImageDataset.TargetLabel.Cataract, EyeImageDataset.TargetType.GoodImage)
-        elif 'age-related macular degeneration' in diag: return (EyeImageDataset.TargetLabel.AgeRelatedMacularDegeneration, EyeImageDataset.TargetType.GoodImage)
+                'diabetic' in diag:
+            return (EyeImageDataset.TargetLabel.Diabetes, EyeImageDataset.TargetType.GoodImage)
+        elif 'myopia' in diag or diag in EyeImageDataset.__myopia_str:
+            return (EyeImageDataset.TargetLabel.PathologicalMyopia, EyeImageDataset.TargetType.GoodImage)
+        elif diag == 'hypertensive retinopathy':
+            return (EyeImageDataset.TargetLabel.Hypertension, EyeImageDataset.TargetType.GoodImage)
+        elif diag in EyeImageDataset.__glaucoma_str:
+            return (EyeImageDataset.TargetLabel.Glaucoma, EyeImageDataset.TargetType.GoodImage)
+        elif 'cataract' in diag:
+            return (EyeImageDataset.TargetLabel.Cataract, EyeImageDataset.TargetType.GoodImage)
+        elif 'age-related macular degeneration' in diag:
+            return (EyeImageDataset.TargetLabel.AgeRelatedMacularDegeneration, EyeImageDataset.TargetType.GoodImage)
         elif 'coloboma' in diag or \
             'chorioretinal atrophy' in diag or \
             'chorioretinal atrophy' in diag or \
-            diag in EyeImageDataset._other_diagnostics_str: return (EyeImageDataset.TargetLabel.Other, EyeImageDataset.TargetType.GoodImage)
+                diag in EyeImageDataset._other_diagnostics_str:
+            return (EyeImageDataset.TargetLabel.Other, EyeImageDataset.TargetType.GoodImage)
         else:
-            raise Exception(str.format(f'Diagnostics \"{diagnostics}\" not expected at sample {idx}'))
+            raise Exception(str.format(
+                f'Diagnostics \"{diagnostics}\" not expected at sample {idx}'))
 
     def __build_diagostics_labels(diagnostics_str: str, num_classes: int, idx: int) -> Tuple[dict, bool]:
         labels = [0 for _ in range(0, num_classes)]
@@ -200,6 +262,5 @@ class EyeImageDataset (VisionDataset):
                 return [None, False]
             else:
                 labels[int(label)] = 1
-        
+
         return [labels, True]
-      
