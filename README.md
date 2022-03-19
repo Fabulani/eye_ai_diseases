@@ -109,7 +109,7 @@ save_weights() and load_weights() respectivelly.
 ### Some results
 
 
-RESNET-18
+#### RESNET-18
 
 accuracy: 82.48% [43310/52512]
 	 - Normal: 92.34% [6061/6564]
@@ -121,9 +121,18 @@ accuracy: 82.48% [43310/52512]
 	 - PathologicalMyopia: 92.00% [6039/6564]
 	 - Other: 68.24% [4479/6564]
 
-RESNET-34 (TODO)
+#### RESNET-34 (TODO)
 
 
 
-CUSTOM (TODO)
+#### CUSTOM 
 
+accuracy: 70.59% [37066/52512]
+	 - Normal: 42.93% [2818/6564]
+	 - Diabetes: 27.70% [1818/6564]
+	 - Glaucoma: 94.03% [6172/6564]
+	 - Cataract: 95.67% [6280/6564]
+	 - AgeRelatedMacularDegeneration: 94.24% [6186/6564]
+	 - Hypertension: 97.04% [6370/6564]
+	 - PathologicalMyopia: 96.01% [6302/6564]
+	 - Other: 17.06% [1120/6564]
