@@ -79,16 +79,20 @@ def specularity_pixels_count(image):
 
     return (p & q).sum()
 
-def detect_opacity(image: Tuple[int,int,int], verbose = True) -> bool:
+def detect_opacity(image: Tuple[int,int,int], verbose: bool = True, result_title: str = None) -> bool:
+
     eq_img = contrast_equalization(image, adjust_if_lower=False)
-    canny_img, solid = is_strong_solid_opacity(eq_img)
+    canny_img, solid = is_strong_solid_opacity(eq_img, threshold=180)
 
     if verbose:
         fig = plt.figure(figsize=(10, 7))
         fig.add_subplot(1, 3, 1)
         plt.imshow(image)
         plt.axis('off')
-        plt.title('original')
+        if (result_title != None):
+            plt.title('original: {title}')
+        else:
+            plt.title('original')
 
         fig.add_subplot(1, 3, 2)
         plt.imshow(eq_img)
@@ -99,6 +103,7 @@ def detect_opacity(image: Tuple[int,int,int], verbose = True) -> bool:
         plt.imshow(canny_img)
         plt.axis('off')
         plt.title('canny sigma 0.01')
+        
 
     return solid
 
@@ -132,9 +137,11 @@ def is_strong_solid_opacity(image, padding=70, threshold=100, sigma=0.01) -> Tup
         img = image
 
     img = img[padding:img.shape[0]-padding,padding:img.shape[1]-padding]
-    img =  feature.canny(img, sigma=sigma)
-    img[img > 0] = 255
-    return [img, (img > 0).sum() < threshold]
+    canny =  feature.canny(img, sigma=sigma)
+    img[:] = 0
+    img[canny] = 255
+    s =  (img > 0).sum()
+    return [img, s < threshold]
 
 def find_hog(image):
     return feature.hog(image, orientations=8, pixels_per_cell=(16, 16),

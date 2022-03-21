@@ -108,6 +108,18 @@ save_weights() and load_weights() respectivelly.
 
 ### Some results
 
+#### Classic Cataract Detection with Canny
+
+True positives: 198/286: 69.23 %
+False positives: 133/286: 46.50 %
+True negatives: 5863/5996: 97.78 %
+False negatives: 88/5996: 1.47 %
+
+#### Classic All-Diseases Detection with SVM and Wavelet Haar Transformations
+
+
+
+
 
 #### RESNET-18
 
