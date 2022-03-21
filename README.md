@@ -77,11 +77,15 @@ take a look at the code on eye_dataset.py itself.
 
 The classical approach code is included in the classic/ folder.
 
-Currently, we deal with cataract detection only. Please refer to the cataract_detection.ipynb  file
+cataract_detection.ipynb deals with cataract detection using Canny
+
+classification_svm uses SVM and wavelet haar transformation to classify all images according to the expected label, following the work of [taspinar](
+https://github.com/taspinar/siml/blob/master/notebooks/WV4%20-%20Classification%20of%20ECG%20signals%20using%20the%20Discrete%20Wavelet%20Transform.ipynb)
+
 
 ### Deep-learning approach
 
-The classical approach code is included in the deep-learning/ folder.
+The convolutional approach code is included in the deep-learning/ folder.
 
 We provide several classification examples using convolutional neural networks. 
 
@@ -133,7 +137,7 @@ accuracy: 82.48% [43310/52512]
 	 - PathologicalMyopia: 92.00% [6039/6564]
 	 - Other: 68.24% [4479/6564]
 
-#### RESNET-34 (TODO)
+#### RESNET-34
 
 
 
