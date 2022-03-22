@@ -121,7 +121,14 @@ False negatives: 88/5996: 1.47 %
 
 #### Classic All-Diseases Detection with SVM and Wavelet Haar Transformations
 
-
+class: Normal, prediction: [106 / 2818] 3.7615330021291697%
+class: Diabetes, prediction: [267 / 1397] 19.112383679312813%
+class: Glaucoma, prediction: [131 / 221] 59.276018099547514%
+class: Cataract, prediction: [135 / 263] 51.330798479087456%
+class: AgeRelatedMacularDegeneration, prediction: [49 / 237] 20.675105485232066%
+class: Hypertension, prediction: [32 / 104] 30.76923076923077%
+class: PathologicalMyopia, prediction: [137 / 237] 57.80590717299578%
+class: Other, prediction: [101 / 814] 12.407862407862408%
 
 
 
@@ -139,7 +146,15 @@ accuracy: 82.48% [43310/52512]
 
 #### RESNET-34
 
-
+81.66% [42879/52512]
+	 - Normal: 78.41% [5147/6564]
+	 - Diabetes: 55.56% [3647/6564]
+	 - Glaucoma: 83.78% [5499/6564]
+	 - Cataract: 93.53% [6139/6564]
+	 - AgeRelatedMacularDegeneration: 93.36% [6128/6564]
+	 - Hypertension: 86.97% [5709/6564]
+	 - PathologicalMyopia: 97.88% [6425/6564]
+	 - Other: 63.76% [4185/6564]
 
 #### CUSTOM 
 
@@ -152,3 +167,6 @@ accuracy: 70.59% [37066/52512]
 	 - Hypertension: 97.04% [6370/6564]
 	 - PathologicalMyopia: 96.01% [6302/6564]
 	 - Other: 17.06% [1120/6564]
+
+#### AlexNET
+
