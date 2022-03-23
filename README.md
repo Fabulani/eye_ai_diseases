@@ -146,36 +146,36 @@ accuracy: 82.48% [43310/52512]
 
 #### RESNET-34
 
-81.66% [42879/52512]
-	 - Normal: 78.41% [5147/6564]
-	 - Diabetes: 55.56% [3647/6564]
-	 - Glaucoma: 83.78% [5499/6564]
-	 - Cataract: 93.53% [6139/6564]
-	 - AgeRelatedMacularDegeneration: 93.36% [6128/6564]
-	 - Hypertension: 86.97% [5709/6564]
-	 - PathologicalMyopia: 97.88% [6425/6564]
-	 - Other: 63.76% [4185/6564]
+	81.66%
+	 - Normal: 78.41%
+	 - Diabetes: 55.56%
+	 - Glaucoma: 83.78%
+	 - Cataract: 93.53%
+	 - AgeRelatedMacularDegeneration: 93.36%
+	 - Hypertension: 86.97%
+	 - PathologicalMyopia: 97.88%
+	 - Other: 63.76%
 
 #### CUSTOM 
 
-accuracy: 70.59% [37066/52512]
-	 - Normal: 42.93% [2818/6564]
-	 - Diabetes: 27.70% [1818/6564]
-	 - Glaucoma: 94.03% [6172/6564]
-	 - Cataract: 95.67% [6280/6564]
-	 - AgeRelatedMacularDegeneration: 94.24% [6186/6564]
-	 - Hypertension: 97.04% [6370/6564]
-	 - PathologicalMyopia: 96.01% [6302/6564]
-	 - Other: 17.06% [1120/6564]
+accuracy: 70.59%
+	 - Normal: 42.93%
+	 - Diabetes: 27.70%
+	 - Glaucoma: 94.03%
+	 - Cataract: 95.67%
+	 - AgeRelatedMacularDegeneration: 94.24%
+	 - Hypertension: 97.04%
+	 - PathologicalMyopia: 96.01%
+	 - Other: 17.06%
 
 #### AlexNET
 
-accuracy: 76.44% [40142/52512]
-	 - Normal: 75.00% [4923/6564]
-	 - Diabetes: 51.58% [3386/6564]
-	 - Glaucoma: 87.14% [5720/6564]
-	 - Cataract: 84.43% [5542/6564]
-	 - AgeRelatedMacularDegeneration: 86.88% [5703/6564]
-	 - Hypertension: 79.07% [5190/6564]
-	 - PathologicalMyopia: 95.14% [6245/6564]
-	 - Other: 52.30% [3433/6564]
+accuracy: 76.44%
+	 - Normal: 75.00%
+	 - Diabetes: 51.58%
+	 - Glaucoma: 87.14%
+	 - Cataract: 84.43%
+	 - AgeRelatedMacularDegeneration: 86.88%
+	 - Hypertension: 79.07%
+	 - PathologicalMyopia: 95.14%
+	 - Other: 52.30%
