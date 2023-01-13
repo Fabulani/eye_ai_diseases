@@ -5,7 +5,9 @@ This project is a prof-of-concept of using computer vision to detect several ano
 A classical approach is done on classic/ folder currently for cataract only, while a deep-learning approach is done for
 diabetes, cataract, glaucoma, age-related macular degeneration, hypertension and pathological myopia.
 
-The source dataset includes other kind of eye-problems which are classified as other
+The source dataset includes other kind of eye-problems which are classified as other.
+
+**[Video Presentation (PT-BR)](https://www.youtube.com/watch?v=0iyNtRQwrCI)**
 
 
 ## Image Dataset for this project
